@@ -4,6 +4,9 @@
 import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
+import torchvision.models as models
+from torchvision.models.resnet import ResNet
+from torchvision.models.resnet import BasicBlock
 
 class DoubleConv(nn.Module):
     """
@@ -34,6 +37,7 @@ class DoubleConv(nn.Module):
         Returns:
             torch.Tensor: Output tensor after the double convolution operations.
         """
+        
         return self.conv(x)
 
 class Encoder(nn.Module):
@@ -110,6 +114,37 @@ class Decoder(nn.Module):
             x = self.up_sample[idx + 1](concat)
         return x
 
+
+class ResNetEncoder(ResNet):
+    def __init__(self, out_channels, depth=5, **kwargs):
+        super().__init__(**kwargs)
+        self._depth = depth
+        self._out_channels = out_channels
+        self._in_channels = 3
+        del self.fc
+        del self.avgpool
+
+    def get_stages(self):
+        return [
+            nn.Identity(),
+            nn.Sequential(self.conv1, self.bn1, self.relu),
+            nn.Sequential(self.maxpool, self.layer1),
+            self.layer2,
+            self.layer3,
+            self.layer4,
+        ]
+
+    def forward(self, x):
+        stages = self.get_stages()
+
+        features = []
+        for i in range(self._depth + 1):
+            x = stages[i](x)
+            features.append(x)
+
+        return x, features
+
+
 class Unet(nn.Module):
     """
     U-Net architecture for semantic segmentation.
@@ -119,11 +154,19 @@ class Unet(nn.Module):
         out_channels (int): Number of output channels.
         levels (list): List of integers specifying the number of feature channels at each level.
     """
-    def __init__(self, in_channels, out_channels, levels=[64, 128, 256, 512]):
+    def __init__(self, in_channels, out_channels,encoder=None, levels=[64, 128, 256, 512]):
         super(Unet, self).__init__()
-        self.encoder = Encoder(in_channels, levels)
+        
+        if encoder is None:
+            self.encoder = ResNetEncoder(out_channels=(3, 64, 64, 128, 256, 512),block=BasicBlock, layers=[2,2,2,2])
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+        elif encoder == 'Encoder':
+            self.encoder = Encoder(in_channels, levels)
+        
         self.decoder = Decoder(levels)
         self.bottleneck = DoubleConv(levels[-1], levels[-1] * 2)
+        breakpoint()
         self.final_conv = nn.Conv2d(levels[0], out_channels, kernel_size=1)
 
     def forward(self, x):
@@ -136,6 +179,10 @@ class Unet(nn.Module):
         Returns:
             torch.Tensor: Segmentation output.
         """
+        
+        if self.encoder is not None and isinstance(self.encoder, ResNetEncoder):
+            # If using ResNetEncoder, resize the input to match its expected size
+            x = TF.resize(x, size=(x.size(2) * 4, x.size(3) * 4))
         x, encoder_output = self.encoder(x)
         x = self.bottleneck(x)
         x = self.decoder(x, encoder_output)
@@ -148,8 +195,8 @@ def test():
 
     Prints the model architecture and the segmentation prediction.
     """
-    x = torch.randn((3, 1, 161, 161))
-    model = Unet(in_channels=1, out_channels=1)
+    x = torch.randn((3, 3, 161, 161))
+    model = Unet(in_channels=3, out_channels=1, encoder=None)
     print(model)
     prediction = model(x)
     print(prediction)

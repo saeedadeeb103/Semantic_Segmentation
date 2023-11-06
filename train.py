@@ -20,15 +20,15 @@ TRAIN_IMG_DIR = 'HumanDataset/train/images'
 TRAIN_MASK_DIR = 'HumanDataset/train/masks'
 VAL_IMG_DIR = 'HumanDataset/val/images'
 VAL_MASK_DIR = 'HumanDataset/val/masks'
-batch_size = 16
-IMAGE_HEIGHT = 128
-IMAGE_WIDTH = 128
+batch_size = 8
+IMAGE_HEIGHT = 256
+IMAGE_WIDTH = 256
 
 
 class Segment(pl.LightningModule):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, Encoder):
         super(Segment, self).__init__()
-        self.model= Unet(in_channels= in_channels, out_channels=out_channels)
+        self.model= Unet(in_channels= in_channels, out_channels=out_channels, encoder=Encoder)
         self.criterion = nn.BCEWithLogitsLoss()
 
     def forward(self, x):
@@ -102,11 +102,12 @@ def main():
         val_transform=val_transform,
         num_workers=2)
     
-    model = Segment(in_channels=3, out_channels= 1)
+    model = Segment(in_channels=3, out_channels= 1, Encoder=None)
+    breakpoint()
     trainer = pl.Trainer(
-        max_epochs=400, 
+        max_epochs=1, 
         accelerator='gpu' if torch.cuda.is_available() else 'cpu', 
-        check_val_every_n_epoch=5,
+        check_val_every_n_epoch=1,
     )
     trainer.fit(
         model, 
