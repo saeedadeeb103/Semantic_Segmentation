@@ -21,8 +21,8 @@ TRAIN_MASK_DIR = 'HumanDataset/train/masks'
 VAL_IMG_DIR = 'HumanDataset/val/images'
 VAL_MASK_DIR = 'HumanDataset/val/masks'
 batch_size = 8
-IMAGE_HEIGHT = 256
-IMAGE_WIDTH = 256
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 224
 
 
 class Segment(pl.LightningModule):
@@ -75,8 +75,8 @@ def main():
         A.VerticalFlip(p=0.1),
         A.RandomContrast(),
         A.Normalize(
-            mean=(0.0, 0.0, 0.0), 
-            std = [1.0, 1.0, 1.0], 
+            mean=(0.485, 0.456, 0.406), 
+            std = [0.229, 0.224, 0.225], 
             max_pixel_value=255.0,
         ), 
         ToTensorV2(),
@@ -84,8 +84,8 @@ def main():
     val_transform = A.Compose([
         A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
         A.Normalize(
-            mean=(0.0, 0.0, 0.0), 
-            std = [1.0, 1.0, 1.0], 
+            mean=(0.485, 0.456, 0.406), 
+            std = [0.229, 0.224, 0.225], 
             max_pixel_value=255.0,
         ), 
         ToTensorV2(),
@@ -102,7 +102,7 @@ def main():
         val_transform=val_transform,
         num_workers=2)
     
-    model = Segment(in_channels=3, out_channels= 1, Encoder=None)
+    model = Segment(in_channels=3, out_channels= 1, Encoder='resnet18')
     breakpoint()
     trainer = pl.Trainer(
         max_epochs=1, 

@@ -157,12 +157,17 @@ class Unet(nn.Module):
     def __init__(self, in_channels, out_channels,encoder=None, levels=[64, 128, 256, 512]):
         super(Unet, self).__init__()
         
-        if encoder is None:
-            self.encoder = ResNetEncoder(out_channels=(3, 64, 64, 128, 256, 512),block=BasicBlock, layers=[2,2,2,2])
+        if encoder == 'resnet18':
+            layers = [2, 2, 2, 2]
+        elif encoder == 'resnet34':
+            layers = [3, 4, 6, 3]
+
+        if encoder == 'Encoder':
+            self.encoder = Encoder(in_channels, levels)
+        else: 
+            self.encoder = ResNetEncoder(out_channels=(3, 64, 64, 128, 256, 512),block=BasicBlock, layers=layers)
             for param in self.encoder.parameters():
                 param.requires_grad = False
-        elif encoder == 'Encoder':
-            self.encoder = Encoder(in_channels, levels)
         
         self.decoder = Decoder(levels)
         self.bottleneck = DoubleConv(levels[-1], levels[-1] * 2)
