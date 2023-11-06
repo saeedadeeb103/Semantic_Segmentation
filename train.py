@@ -16,13 +16,13 @@ from utils import get_loader
 from unet import Unet
 
 # Create the training dataset
-TRAIN_IMG_DIR = 'DATASET/train/images'
-TRAIN_MASK_DIR = 'DATASET/train/masks'
-VAL_IMG_DIR = 'DATASET/val/images'
-VAL_MASK_DIR = 'DATASET/val/masks'
-batch_size = 8
-IMAGE_HEIGHT = 256
-IMAGE_WIDTH = 256
+TRAIN_IMG_DIR = 'HumanDataset/train/images'
+TRAIN_MASK_DIR = 'HumanDataset/train/masks'
+VAL_IMG_DIR = 'HumanDataset/val/images'
+VAL_MASK_DIR = 'HumanDataset/val/masks'
+batch_size = 16
+IMAGE_HEIGHT = 128
+IMAGE_WIDTH = 128
 
 
 class Segment(pl.LightningModule):
@@ -54,7 +54,7 @@ class Segment(pl.LightningModule):
         return loss
     
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr = 1e-4)
+        return torch.optim.Adam(self.parameters(), lr = 3e-3)
     
     def on_validation_epoch_end(self):
         avg_loss = self.trainer.logged_metrics['val_loss_epoch']
@@ -73,6 +73,7 @@ def main():
         A.Rotate(limit=35, p=1.0), 
         A.HorizontalFlip(p=0.5), 
         A.VerticalFlip(p=0.1),
+        A.RandomContrast(),
         A.Normalize(
             mean=(0.0, 0.0, 0.0), 
             std = [1.0, 1.0, 1.0], 
@@ -103,11 +104,10 @@ def main():
     
     model = Segment(in_channels=3, out_channels= 1)
     trainer = pl.Trainer(
-        max_epochs=100, 
+        max_epochs=400, 
         accelerator='gpu' if torch.cuda.is_available() else 'cpu', 
-        check_val_every_n_epoch=1, 
+        check_val_every_n_epoch=5,
     )
-    breakpoint()
     trainer.fit(
         model, 
         train_dataloaders=train_loader,

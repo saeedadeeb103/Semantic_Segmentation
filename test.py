@@ -46,10 +46,10 @@ def overlay_mask_outline_on_image(image_path, model_path):
     mask = np.zeros_like(test_image)
 
     # Draw only the contours on the mask with a thickness of 2
-    cv2.drawContours(mask, contours, -1, (0, 0, 255), 2)  # White color for contours, thickness of 2
+    cv2.drawContours(mask, contours, -1, (0, 255, 0), 2)  # White color for contours, thickness of 2
 
     # Overlay the outlined mask on the original image
-    overlay = cv2.addWeighted(np.array(test_image), 1, mask, 1, 0)
+    overlay = cv2.addWeighted(np.array(test_image), 1, mask, 2, 0)
 
     # Convert the overlay from BGR to RGB
     overlay_rgb = cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB)
@@ -75,7 +75,7 @@ def test_model(image_path, model_path):
 
     # Post-process the output if needed
     # For binary segmentation, you can apply a threshold to obtain the mask
-    threshold = 0.7
+    threshold = 0.5
     predicted_mask = (output > threshold).float()
 
     # Convert the tensor back to a NumPy array for visualization or further processing
@@ -97,10 +97,11 @@ if __name__ == "__main__":
     # predicted_mask_image = Image.fromarray((predicted_mask[0, 0] * 255).astype(np.uint8))
     # predicted_mask_image.save('predicted_mask.jpg')
 
-    test_image_path = 'dataset/train/clean/5.jpeg'
+    test_image_path = 'HumanDataset/test/76_png_jpg.rf.8eb59f3f96b7f582d44e6e21f21a1f97.jpg'
     model_path = 'model.pth'
 
     overlay = overlay_mask_outline_on_image(test_image_path, model_path)
 
     # Save or display the overlay image
     cv2.imwrite('overlay.jpg', overlay)
+
