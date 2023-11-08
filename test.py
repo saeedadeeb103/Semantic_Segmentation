@@ -20,7 +20,7 @@ def overlay_mask_outline_on_image(image_path, model_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load the model
-    model = Segment(in_channels=3, out_channels=1)
+    model = Segment(in_channels=3, out_channels=1, encoder='Encoder')
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
